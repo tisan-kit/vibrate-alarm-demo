@@ -20,5 +20,6 @@
  * Returns      : none.
 *******************************************************************************/
 void pando_subdevice_recv(uint8_t * buffer, uint16_t length);
+void report_event_alarm();
 
 #endif /* PANDO_SUBDEVICE_H_ */

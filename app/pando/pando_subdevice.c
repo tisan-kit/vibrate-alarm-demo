@@ -69,6 +69,26 @@ send_current_status()
 	delete_device_package(data_buffer);
 }
 
+void ICACHE_FLASH_ATTR
+report_event_alarm()
+{
+	struct sub_device_buffer* data_buffer;
+	uint16_t event_id = 1;
+
+	data_buffer = create_event_package(event_id);
+	if(NULL == data_buffer)
+	{
+		PRINTF("create event package error\n");
+		return;
+	}
+
+	PRINTF("alarm event package send\n");
+
+	channel_send_to_device(PANDO_CHANNEL_PORT_1, data_buffer->buffer, data_buffer->buffer_length);
+	show_package(data_buffer->buffer, data_buffer->buffer_length);
+	delete_device_package(data_buffer);
+}
+
 static void ICACHE_FLASH_ATTR
 decode_command(struct sub_device_buffer *device_buffer)
 {

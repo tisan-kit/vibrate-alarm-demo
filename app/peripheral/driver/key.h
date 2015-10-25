@@ -4,10 +4,8 @@
 #include "gpio.h"
 #include "../peri_key.h"
 
-
 void key_init(uint32 gpio_name,uint8 gpio_id,uint8 gpio_func);
 void key_intr_handler(struct key_param *key);
-
-
+void peri_vibrate_tim_start(uint16 delay_ms);
 
 #endif
