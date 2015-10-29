@@ -30,6 +30,8 @@ struct key_param {
     key_function long_press;
 };
 
+extern struct key_param *g_single_key;
+
 struct keys_param {
     uint8 key_num;
     struct key_param **single_key;
