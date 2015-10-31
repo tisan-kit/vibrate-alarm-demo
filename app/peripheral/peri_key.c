@@ -16,6 +16,7 @@
 #include "os_type.h"
 #include "mem.h"
 #include "driver/tisan_gpio_intr.h"
+#include "peri_vibrate.h"
  
 struct key_param *g_single_key = NULL;
 
@@ -37,7 +38,6 @@ peri_key_short_press(void)
  * Parameters   : none
  * Returns      : none
 *******************************************************************************/
-
 void ICACHE_FLASH_ATTR
 peri_key_long_press(void)
 {
@@ -61,12 +61,12 @@ peri_single_key_init(uint8 gpio_id,key_function long_press, key_function short_p
     single_key->long_press = long_press;
     single_key->short_press = short_press;
 
-//    ETS_GPIO_INTR_ATTACH(key_intr_handler,single_key);
-    ETS_GPIO_INTR_ATTACH(gpio_intr_handler,single_key);
     ETS_GPIO_INTR_DISABLE();
 
+    peri_vibrate_init_NULL();
     key_init(gpio_name, gpio_id, gpio_func);
+    ETS_GPIO_INTR_ATTACH(gpio_intr_handler,single_key);
+
 
     ETS_GPIO_INTR_ENABLE();
-
 }

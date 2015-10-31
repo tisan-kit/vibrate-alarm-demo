@@ -20,13 +20,6 @@
 #include "tisan_gpio_intr.h"
 
 
-void ICACHE_FLASH_ATTR
-peri_alarm_init(uint8 gpio_id)
-{
-	PIN_FUNC_SELECT(tisan_get_gpio_name(gpio_id), tisan_get_gpio_general_func(gpio_id));
-	PIN_PULLUP_EN(tisan_get_gpio_name(gpio_id));
-}
-
 /******************************************************************************
  * FunctionName : key_init
  * Description  : init keys
@@ -47,7 +40,7 @@ key_init(uint32 gpio_name,uint8 gpio_id,uint8 gpio_func)
 	//clear interrupt status
 	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(gpio_id));
 
-	//enable interrupt
+	//set interrupt mode
 	gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_NEGEDGE);
 }
 

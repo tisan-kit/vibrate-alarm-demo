@@ -33,6 +33,14 @@ uint32 g_vibrate_low_counter = 0;
 uint32 vibrate_tm_high_counter = 0;
 uint32 vibrate_tm_low_counter = 0;
 
+void peri_vibrate_tim_start(uint16 delay_ms);
+
+void ICACHE_FLASH_ATTR
+peri_alarm_init(uint8 gpio_id)
+{
+	PIN_FUNC_SELECT(tisan_get_gpio_name(gpio_id), tisan_get_gpio_general_func(gpio_id));
+	PIN_PULLUP_EN(tisan_get_gpio_name(gpio_id));
+}
 
 void ICACHE_FLASH_ATTR
 vibrate_init(uint8 gpio_id)

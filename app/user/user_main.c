@@ -12,6 +12,7 @@
 *******************************************************************************/
 
 #include "../peripheral/driver/uart.h"
+#include "objects/plug.h"
 #include "objects/led.h"
 #include "os_type.h"
 #include "user_interface.h"
@@ -19,6 +20,8 @@
 #include "wifi_config.h"
 #include "../pando/pando_framework.h"
 #include "objects/plug_pwm.h"
+#include "objects/temperature.h"
+#include "objects/led_br.h"
 
 static void ICACHE_FLASH_ATTR
 user_key_long_press_cb()
@@ -43,7 +46,11 @@ void user_init(void)
 	//led_object_init();
 	//plug_object_init();
 	//plug_pwm_object_init();
+	//peri_vibrate_init(VIBRATE_GPIO_ID);
+	//peri_vibrate_init_NULL();
+	//temperature_object_init();
 
+	//led_br_object_init();
 
 	pando_framework_init();
 }

@@ -4,7 +4,6 @@
 #include "user_interface.h"
 #include "plug.h"
 // add your own includes below
-#define PLUG_OBJECT_NO 1
 
 struct plug {
 	uint8 off_on;
