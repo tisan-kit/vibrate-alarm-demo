@@ -10,9 +10,9 @@
 
 #include "../peri_key.h"
 #include "key.h"
-#include "tisan_vibrate.h"
+#include "vibrate_key.h"
 
 
-void gpio_intr_handler(void *arg);
+void gpio_intr_handler(struct keys_param *keys);
 
 #endif /* APP_PERIPHERAL_DRIVER_TISAN_GPIO_INTR_H_ */

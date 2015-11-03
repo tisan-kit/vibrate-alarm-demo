@@ -20,11 +20,34 @@
 #include "tisan_gpio_intr.h"
 
 
-void ICACHE_FLASH_ATTR
-peri_alarm_init(uint8 gpio_id)
+
+
+/******************************************************************************
+ * FunctionName : key_init_single
+ * Description  : init single key's gpio and register function
+ * Parameters   : uint8 gpio_id - which gpio to use
+ *                uint32 gpio_name - gpio mux name
+ *                uint32 gpio_func - gpio function
+ *                key_function long_press - long press function, needed to install
+ *                key_function short_press - short press function, needed to install
+ * Returns      : single_key_param - single key parameter, needed by key init
+*******************************************************************************/
+struct single_key_param *ICACHE_FLASH_ATTR
+key_init_single(uint8 gpio_id,key_function long_press, key_function short_press,key_function vibrate_trigger, key_function vibrate_stop)
 {
-	PIN_FUNC_SELECT(tisan_get_gpio_name(gpio_id), tisan_get_gpio_general_func(gpio_id));
-	PIN_PULLUP_EN(tisan_get_gpio_name(gpio_id));
+    struct single_key_param *single_key = (struct single_key_param *)os_zalloc(sizeof(struct single_key_param));
+
+
+    single_key->gpio_id = gpio_id;
+    single_key->gpio_name = tisan_get_gpio_name(gpio_id);
+    single_key->gpio_func = tisan_get_gpio_general_func(gpio_id);
+    single_key->long_press = long_press;
+    single_key->short_press = short_press;
+    single_key->vbr_trigger = vibrate_trigger;
+    single_key->vbr_stop = vibrate_stop;
+
+
+    return single_key;
 }
 
 /******************************************************************************
@@ -34,21 +57,35 @@ peri_alarm_init(uint8 gpio_id)
  * Returns      : none
 *******************************************************************************/
 void ICACHE_FLASH_ATTR
-key_init(uint32 gpio_name,uint8 gpio_id,uint8 gpio_func)
+key_init(struct keys_param *keys)
 {
-	PIN_FUNC_SELECT(gpio_name,gpio_func);
-	PIN_PULLUP_EN(gpio_name);
-	gpio_output_set(0, 0, 0, GPIO_ID_PIN(gpio_id));
+	PRINTF("enter into key_init\n");
+    uint8 i;
+    PRINTF("key address:%d\n", keys);
+    ETS_GPIO_INTR_ATTACH(gpio_intr_handler, keys);
 
-	gpio_register_set(GPIO_PIN_ADDR(gpio_id), GPIO_PIN_INT_TYPE_SET(GPIO_PIN_INTR_DISABLE)
-					  | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_DISABLE)
-					  | GPIO_PIN_SOURCE_SET(GPIO_AS_PIN_SOURCE));
+    ETS_GPIO_INTR_DISABLE();
 
-	//clear interrupt status
-	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(gpio_id));
+    for (i = 0; i < keys->key_num; i++) {
 
-	//enable interrupt
-	gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_NEGEDGE);
+        keys->single_key[i]->key_level = 1;
+
+        PIN_FUNC_SELECT(tisan_get_gpio_name(keys->single_key[i]->gpio_id), tisan_get_gpio_general_func(keys->single_key[i]->gpio_id));
+        PIN_PULLUP_EN(tisan_get_gpio_name(keys->single_key[i]->gpio_id));
+        gpio_output_set(0, 0, 0, GPIO_ID_PIN(keys->single_key[i]->gpio_id));
+        PRINTF("keys->num:%d\n",keys->key_num);
+        gpio_register_set(GPIO_PIN_ADDR(keys->single_key[i]->gpio_id), GPIO_PIN_INT_TYPE_SET(GPIO_PIN_INTR_DISABLE)
+                          | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_DISABLE)
+                          | GPIO_PIN_SOURCE_SET(GPIO_AS_PIN_SOURCE));
+
+        //clear gpio14 status
+        GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(keys->single_key[i]->gpio_id));
+
+        //enable interrupt
+        gpio_pin_intr_state_set(GPIO_ID_PIN(keys->single_key[i]->gpio_id), GPIO_PIN_INTR_NEGEDGE);
+    }
+
+    ETS_GPIO_INTR_ENABLE();
 }
 
 /******************************************************************************
@@ -58,9 +95,10 @@ key_init(uint32 gpio_name,uint8 gpio_id,uint8 gpio_func)
  * Returns      : none
 *******************************************************************************/
 void ICACHE_FLASH_ATTR
-key_5s_cb(struct key_param *single_key)
+key_5s_cb(struct single_key_param *single_key)
 {
-    os_timer_disarm(&single_key->key_5s);
+	  // os_timer_disarm(&single_key->key_50ms);
+	    os_timer_disarm(&single_key->key_5s);
 
     if (0 == GPIO_INPUT_GET(GPIO_ID_PIN(single_key->gpio_id))) {
         if (single_key->long_press) {
@@ -76,10 +114,10 @@ key_5s_cb(struct key_param *single_key)
  * Returns      : none
 *******************************************************************************/
 void ICACHE_FLASH_ATTR
-key_50ms_cb(struct key_param *single_key)
+key_50ms_cb(struct single_key_param *single_key)
 {
     os_timer_disarm(&single_key->key_50ms);
-
+    //os_timer_disarm(&single_key->key_5s);
     // high, then key is up
     if (1 == GPIO_INPUT_GET(GPIO_ID_PIN(single_key->gpio_id))) {
         os_timer_disarm(&single_key->key_5s);

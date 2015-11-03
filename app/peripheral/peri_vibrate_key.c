@@ -9,15 +9,17 @@
  *     Author:
  *     Modification:
  *********************************************************/
-#include "peri_key.h"
+#include "peri_vibrate_key.h"
 #include "user_interface.h"
 #include "eagle_soc.h"
 #include "driver/key.h"
 #include "os_type.h"
 #include "mem.h"
 #include "driver/tisan_gpio_intr.h"
- 
-struct key_param *g_single_key = NULL;
+#include "driver/vibrate_key.h"
+#include "driver/pwm.h"
+#include "peri_buzz.h"
+
 
 /******************************************************************************
  * FunctionName : user_plug_short_press
@@ -26,9 +28,14 @@ struct key_param *g_single_key = NULL;
  * Returns      : none
 *******************************************************************************/
 void ICACHE_FLASH_ATTR
-peri_key_short_press(void)
+peri_vibrate_key_trigger(void)
 {
-	  PRINTF("short\n");
+	  PRINTF("peri_vibrate_key_trigger\n");
+
+	  struct PWM_APP_PARAM buzz_set_param;
+	  buzz_set_param.pwm_freq = 25000;
+	  buzz_set_param.pwm_duty[0] = 200;
+	  peri_buzz_set(buzz_set_param);
 }
 
 /******************************************************************************
@@ -39,19 +46,8 @@ peri_key_short_press(void)
 *******************************************************************************/
 
 void ICACHE_FLASH_ATTR
-peri_key_long_press(void)
+peri_vibrate_key_stop(void)
 {
-	  PRINTF("long\n");
+	  PRINTF("peri_vibrate_key_stop\n");
 }
-/******************************************************************************
- * FunctionName : peri_key_init.
- * Description  : initilaize the key.
- * Parameters   : none
- * Returns      : none
-*******************************************************************************/
-void ICACHE_FLASH_ATTR
-peri_key_init(struct keys_param *keys)
-{
-	PRINTF("enter into peri_key_init\n");
-    key_init(keys);
-}
+
