@@ -22,6 +22,7 @@
 #include "objects/plug_pwm.h"
 #include "objects/temperature.h"
 #include "objects/led_br.h"
+#include "../peripheral/driver/key_base.h"
 
 static void ICACHE_FLASH_ATTR
 user_key_long_press_cb()
@@ -40,17 +41,13 @@ void user_init(void)
 	uart_init(115200, 115200); // serial bound rate:11520.
 
 	//long press gpio4, enter into wifi config mode.
-	peri_single_key_init(4, user_key_long_press_cb, NULL);
+	//peri_single_key_init(4, user_key_long_press_cb, NULL);
 
-	// add you object init here.
-	//led_object_init();
-	//plug_object_init();
-	//plug_pwm_object_init();
-	//peri_vibrate_init(VIBRATE_GPIO_ID);
-	//peri_vibrate_init_NULL();
-	//temperature_object_init();
+	peri_config_key_init(4);
+	peri_vibrate_init(12);
 
-	//led_br_object_init();
+	base_keys_init();
+
 
 	pando_framework_init();
 }

@@ -12,7 +12,7 @@
 #include "key.h"
 #include "tisan_vibrate.h"
 
-
-void gpio_intr_handler(void *arg);
+//void gpio_intr_handler(void *arg);
+void gpio_intr_handler(struct base_key_param **keys_param);
 
 #endif /* APP_PERIPHERAL_DRIVER_TISAN_GPIO_INTR_H_ */

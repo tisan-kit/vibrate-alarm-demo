@@ -14,11 +14,14 @@
 #include "../../pando/pando_subdevice.h"
 #include "tisan_vibrate.h"
 
-#define COUNTER_TO_CLEAR_VIBRATE     20
-#define COUNTER_TO_ALARM     10
+static struct base_key_param *vibrate_key;
+
+
+#define COUNTER_TO_CLEAR_VIBRATE     5
+#define COUNTER_TO_ALARM     2
 
 #define ALARM_GPIO_ID     13
-#define COUNTER_TO_CLEAR_ALARM      20
+#define COUNTER_TO_CLEAR_ALARM      15
 #define ALARM_TIME_HIGH     20
 #define ALARM_TIME_LOW      10
 
@@ -33,10 +36,12 @@ uint32 g_vibrate_low_counter = 0;
 uint32 vibrate_tm_high_counter = 0;
 uint32 vibrate_tm_low_counter = 0;
 
-void peri_vibrate_tim_start(uint16 delay_ms);
+static uint32 vibrate_tm_counter = 0;
+
+void vibrate_tim_start(uint16 delay_ms);
 
 void ICACHE_FLASH_ATTR
-peri_alarm_init(uint8 gpio_id)
+alarm_init(uint8 gpio_id)
 {
 	PIN_FUNC_SELECT(tisan_get_gpio_name(gpio_id), tisan_get_gpio_general_func(gpio_id));
 	PIN_PULLUP_EN(tisan_get_gpio_name(gpio_id));
@@ -62,8 +67,8 @@ vibrate_init(uint8 gpio_id)
 	//enable interrupt
 	gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_NEGEDGE);
 
-	peri_alarm_init(ALARM_GPIO_ID);
-	peri_vibrate_tim_start(100);
+	alarm_init(ALARM_GPIO_ID);
+	vibrate_tim_start(100);
 }
 
 static void ICACHE_FLASH_ATTR
@@ -95,7 +100,7 @@ alarm_timer_cb(void* arg)
 }
 
 void ICACHE_FLASH_ATTR
-peri_alarm_tim_start(uint16 delay_ms)
+alarm_tim_start(uint16 delay_ms)
 {
 	alarm_counter = 1;
 	report_event_alarm();    //report event
@@ -105,57 +110,88 @@ peri_alarm_tim_start(uint16 delay_ms)
 	os_timer_arm(&alarm_timer, delay_ms, 1);
 }
 
-
 static void ICACHE_FLASH_ATTR
-vibrate_timer_cb(void* arg)
+vibrate_timer_cb(struct base_key_param * single_key)
 {
-	if(g_vibrate_low_counter)
-	{
-		PRINTF("vibrate_timer_cb,vibrate_low_counter:%d, tm_counter:%d\n", g_vibrate_low_counter, vibrate_tm_low_counter);
+	uint16 counter = single_key->counter;
 
-		if(!GPIO_INPUT_GET(GPIO_ID_PIN(VIBRATE_GPIO_ID)))
+	vibrate_tm_counter++;
+
+	PRINTF("\n vibrate_timer_cb counter:%d, tm_counter:%d \n", counter, vibrate_tm_counter);
+	if(counter >= COUNTER_TO_ALARM)  //reach alarm condition
+	{
+		PRINTF("COUNTER_TO_ALARM occur \n");
+		vibrate_tm_counter = 0;
+		single_key->counter = 0;
+		PRINTF("\n Will alarm, clear counter\n");
+		os_timer_disarm(&vibrate_timer);
+		alarm_tim_start(200);
+	}
+	else
+	{
+		if(vibrate_tm_counter >= COUNTER_TO_CLEAR_VIBRATE)
 		{
-			g_vibrate_low_counter++;
+			vibrate_tm_counter = 0;
+			single_key->counter = 0;
+			PRINTF("\n Clear counter:%d\n",single_key->counter);
+			os_timer_disarm(&vibrate_timer);
 		}
-		vibrate_tm_low_counter++;
-	}
-	if(vibrate_tm_low_counter >= COUNTER_TO_CLEAR_VIBRATE)
-	{
-		PRINTF("Clear counter low\n");
-		g_vibrate_low_counter = 0;
-		vibrate_tm_low_counter = 0;
 	}
 
-//	if(vibrate_high_counter)
-//	{
-//		PRINTF("vibrate_timer_cb,vibrate_high_counter:%d, tm_counter:%d\n", vibrate_high_counter, vibrate_tm_high_counter);
-//		vibrate_tm_high_counter++;
-//	}
-//	if(vibrate_tm_high_counter >= COUNTER_TO_CLEAR)
-//	{
-//		PRINTF("Clear counter high\n");
-//		vibrate_high_counter = 0;
-//		vibrate_tm_high_counter = 0;
-//	}
-
-	if((g_vibrate_low_counter >= COUNTER_TO_ALARM) || (g_vibrate_high_counter >= COUNTER_TO_ALARM))
-	{
-		PRINTF("COUNTER_TO_ALARM, vibrate_low_counter:%u, vibrate_high_counter:%u ", g_vibrate_low_counter, g_vibrate_high_counter);
-		g_vibrate_low_counter = 0;
-		g_vibrate_high_counter = 0;
-
-		vibrate_tm_low_counter = 0;
-		vibrate_tm_high_counter = 0;
-
-		peri_alarm_tim_start(200);
-	}
 }
 
 void ICACHE_FLASH_ATTR
-peri_vibrate_tim_start(uint16 delay_ms)
+vibrate_tim_start(uint16 delay_ms)
 {
 	os_timer_disarm(&vibrate_timer);
-	os_timer_setfn(&vibrate_timer, (os_timer_func_t *)vibrate_timer_cb, NULL);
+	os_timer_setfn(&vibrate_timer, (os_timer_func_t *)vibrate_timer_cb, vibrate_key);
 	os_timer_arm(&vibrate_timer, delay_ms, 1);
 }
+
+void ICACHE_FLASH_ATTR
+vibrate_cb(struct base_key_param *single_key)
+{
+	// 1 add counter; 2 judge if need to alarm and reset counter
+	vibrate_key = single_key;
+
+	PRINTF("\r\n vibrate_cb, gpio_id:%d, counter:%d \r\n",vibrate_key->gpio_id,vibrate_key->counter);
+
+	vibrate_tim_start(20);
+}
+
+
+void ICACHE_FLASH_ATTR
+vibrate_high_cb(struct base_key_param *single_key)
+{
+	
+    os_timer_disarm(&single_key->k_timer1);
+    PRINTF("\r\n vibrate_high_cb, single_key->gpio_id:%d\r\n",single_key->gpio_id);
+    if (0 == GPIO_INPUT_GET(GPIO_ID_PIN(single_key->gpio_id))) {
+        if (single_key->k_function1) {
+            single_key->k_function1();
+        }
+    }
+}
+
+
+void ICACHE_FLASH_ATTR
+vibrate_low_cb(struct base_key_param *single_key)
+{
+    os_timer_disarm(&single_key->k_timer1);
+    PRINTF("\r\n vibrate_low_cb, single_key->gpio_id:%d\r\n",single_key->gpio_id);
+    if (0 == GPIO_INPUT_GET(GPIO_ID_PIN(single_key->gpio_id))) {
+        if (single_key->k_function1) {
+            single_key->k_function1();
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
 

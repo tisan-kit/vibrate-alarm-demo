@@ -19,6 +19,8 @@
 #include "key.h"
 #include "tisan_gpio_intr.h"
 
+#include "key_base.h"
+
 
 /******************************************************************************
  * FunctionName : key_init
@@ -44,6 +46,12 @@ key_init(uint32 gpio_name,uint8 gpio_id,uint8 gpio_func)
 	gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_NEGEDGE);
 }
 
+void ICACHE_FLASH_ATTR
+key_init2(uint8_id)
+{
+}
+
+
 /******************************************************************************
  * FunctionName : key_5s_cb
  * Description  : long press 5s timer callback
@@ -51,13 +59,13 @@ key_init(uint32 gpio_name,uint8 gpio_id,uint8 gpio_func)
  * Returns      : none
 *******************************************************************************/
 void ICACHE_FLASH_ATTR
-key_5s_cb(struct key_param *single_key)
+key_5s_cb(struct base_key_param *single_key)
 {
-    os_timer_disarm(&single_key->key_5s);
-
+    os_timer_disarm(&single_key->k_timer1);
+    PRINTF("\r\nkey_5s_cb, single_key->gpio_id:%d\r\n",single_key->gpio_id);
     if (0 == GPIO_INPUT_GET(GPIO_ID_PIN(single_key->gpio_id))) {
-        if (single_key->long_press) {
-            single_key->long_press();
+        if (single_key->k_function1) {
+            single_key->k_function1();
         }
     }
 }
@@ -69,18 +77,18 @@ key_5s_cb(struct key_param *single_key)
  * Returns      : none
 *******************************************************************************/
 void ICACHE_FLASH_ATTR
-key_50ms_cb(struct key_param *single_key)
+key_50ms_cb(struct base_key_param *single_key)
 {
-    os_timer_disarm(&single_key->key_50ms);
+    os_timer_disarm(&single_key->k_timer2);
 
     // high, then key is up
     if (1 == GPIO_INPUT_GET(GPIO_ID_PIN(single_key->gpio_id))) {
-        os_timer_disarm(&single_key->key_5s);
-        single_key->key_level = 1;
+        os_timer_disarm(&single_key->k_timer1);
+        single_key->level = 1;
         gpio_pin_intr_state_set(GPIO_ID_PIN(single_key->gpio_id), GPIO_PIN_INTR_NEGEDGE);
 
-        if (single_key->short_press) {
-            single_key->short_press();
+        if (single_key->k_function2) {
+            single_key->k_function2();
         }
     } else {
         gpio_pin_intr_state_set(GPIO_ID_PIN(single_key->gpio_id), GPIO_PIN_INTR_POSEDGE);

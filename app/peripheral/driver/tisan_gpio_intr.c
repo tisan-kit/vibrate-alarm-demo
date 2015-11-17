@@ -15,56 +15,126 @@
 #include "tisan_gpio_intr.h"
 
 
-void gpio_intr_handler(void *arg)
+void gpio_intr_init(void)
+{
+	
+}
+
+
+//void gpio_intr_handler(void *arg)
+void gpio_intr_handler(struct base_key_param **keys_param)
 {
     uint8 i;
     uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
+	uint8 gpio_id;
+
+	struct base_key_param * single_key = NULL;
 
     PRINTF("Get into gpio_intr_handler, gpio_status:%u\n", gpio_status);
 
-	if (gpio_status & BIT(((struct key_param *)arg)->gpio_id))
+	for(i = 0; i < KEY_MAX_NUM; i++)
 	{
-		struct key_param *key = (struct key_param *)arg;
+		single_key = keys_param[i];
 
-		//disable interrupt
-		gpio_pin_intr_state_set(GPIO_ID_PIN(key->gpio_id), GPIO_PIN_INTR_DISABLE);
-		//clear interrupt status
-		GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(key->gpio_id));
+		if(single_key == NULL)
+		{
+			PRINTF("\r\nintr sinle_key is NULL, i:%d\r\n",i);
+			continue;
+		}
+		
+		gpio_id = single_key->gpio_id;
+		PRINTF("\r\ngpio_id:%d, BIT(gpio_id):%d\r\n",gpio_id, BIT(gpio_id));
+		if(gpio_status & BIT(gpio_id))
+		{
+			PRINTF("\r\n key config start....\r\n");
+			//disable interrupt
+			gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_DISABLE);
+			//clear interrupt status
+			GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(gpio_id));
 
-		if (key->key_level == 1)
-		{
-			// 5s, restart & enter softap mode
-			os_timer_disarm(&key->key_5s);
-			os_timer_setfn(&key->key_5s, (os_timer_func_t *)key_5s_cb, key);
-			os_timer_arm(&key->key_5s, LONG_PRESS_COUNT, 0);
-			key->key_level = 0;
-			gpio_pin_intr_state_set(GPIO_ID_PIN(key->gpio_id), GPIO_PIN_INTR_POSEDGE);
-		}
-		else
-		{
-			// 50ms, check if this is a real key up
-			os_timer_disarm(&key->key_50ms);
-			os_timer_setfn(&key->key_50ms, (os_timer_func_t *)key_50ms_cb, key);
-			os_timer_arm(&key->key_50ms, 50, 0);
-		}
-	}
+			//if need to manage special gpio event,  manage here
+			//example: manage key config wifi connect, need call config_key_init() first
+			if(i == 0)
+			{
+				if(single_key->level == 1)
+				{// 5s, restart & enter softap mode
+					PRINTF("\r\n sinle_key->level:%d....\r\n", single_key->level);
+					os_timer_disarm(&single_key->k_timer1);
+					os_timer_setfn(&single_key->k_timer1, (os_timer_func_t *)key_5s_cb,
+							single_key);
+					os_timer_arm(&single_key->k_timer1, LONG_PRESS_COUNT, 0);
+					single_key->level = 0;
+					gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_POSEDGE);
+				}
+				else
+				{					// 50ms, check if this is a real key up
+					PRINTF("\r\n50ms sinle_key->level:%d....\r\n", single_key->level);
+					os_timer_disarm(&single_key->k_timer2);
+					os_timer_setfn(&single_key->k_timer2, (os_timer_func_t *)key_50ms_cb,
+							single_key);
+					os_timer_arm(&single_key->k_timer2, 50, 0);
+				}
+			
+				continue;
+			}
 
-    if (gpio_status & BIT(VIBRATE_GPIO_ID))  //judge whether interrupt source is gpio12
-    {
-    	//clear interrupt status
-    	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(VIBRATE_GPIO_ID));
+			if(i == 1)  //example: manage vibrate event, need call vibrate_init() second
+			{
+				//if(single_key->level == 1)  //get gpio pin level  (high/low)
+				{
+					//single_key->counter++;
+					PRINTF("\r\n vibrate high level:%d, counter:%d ....\r\n", single_key->level, single_key->counter);
+					single_key->level = 0;
+					single_key->counter++;
+					if(single_key->counter == 1)
+					{
+						//first call function
+						os_timer_disarm(&single_key->k_timer1);
+						os_timer_setfn(&single_key->k_timer1, (os_timer_func_t *)vibrate_cb,
+								single_key);
+						os_timer_arm(&single_key->k_timer1, 10, 0);
+					}
+					gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_NEGEDGE);
+				}
+//				else
+//				{
+//					single_key->counter++;
+//					PRINTF("\r\n vibrate low level:%d, counter:%d ....\r\n", single_key->level, single_key->counter);
+//
+//					single_key->level = 1;
+////					os_timer_disarm(&sinle_key->k_timer2);
+////					os_timer_setfn(&sinle_key->k_timer2, (os_timer_func_t *)vibrate_low_cb,
+////						sinle_key);
+////					os_timer_arm(&sinle_key->k_timer2, 50, 0);
+//					gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_POSEDGE);
+//				}
 
-		if(GPIO_INPUT_GET(GPIO_ID_PIN(VIBRATE_GPIO_ID)))  //get gpio pin level  (high/low)
-		{
-			g_vibrate_high_counter++;
-			PRINTF("intr vibrate_high_counter:%d\n", g_vibrate_high_counter);
+
+				continue;
+			}
+
+			//other manage
+
 		}
-		else
-		{
-			g_vibrate_low_counter++;
-			PRINTF("intr vibrate_low_counter:%d\n", g_vibrate_low_counter);
-		}
-    }
+	}	
+
+	
+//    if (gpio_status & BIT(VIBRATE_GPIO_ID))  //judge whether interrupt source is gpio12
+//    {
+//    	//clear interrupt status
+//    	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(VIBRATE_GPIO_ID));
+//
+//		if(GPIO_INPUT_GET(GPIO_ID_PIN(VIBRATE_GPIO_ID)))  //get gpio pin level  (high/low)
+//		{
+//			g_vibrate_high_counter++;
+//			PRINTF("intr vibrate_high_counter:%d\n", g_vibrate_high_counter);
+//		}
+//		else
+//		{
+//			g_vibrate_low_counter++;
+//			PRINTF("intr vibrate_low_counter:%d\n", g_vibrate_low_counter);
+//		}
+//    }
 }
 
 

@@ -17,6 +17,7 @@
 #include "mem.h"
 #include "driver/tisan_gpio_intr.h"
 #include "peri_vibrate.h"
+#include "../user/wifi_config.h"
  
 struct key_param *g_single_key = NULL;
 
@@ -41,7 +42,8 @@ peri_key_short_press(void)
 void ICACHE_FLASH_ATTR
 peri_key_long_press(void)
 {
-	  PRINTF("long\n");
+	  PRINTF("long press..\n");
+	  wifi_config(NULL);
 }
 /******************************************************************************
  * FunctionName : peri_key_init.
@@ -70,3 +72,25 @@ peri_single_key_init(uint8 gpio_id,key_function long_press, key_function short_p
 
     ETS_GPIO_INTR_ENABLE();
 }
+
+void ICACHE_FLASH_ATTR
+peri_config_key_init(uint8 gpio_id)
+{
+	struct base_key_param *key = (struct base_key_param *)os_zalloc(sizeof(struct base_key_param));
+
+	key->gpio_id = gpio_id;
+	key->gpio_name = tisan_get_gpio_name(gpio_id);
+	key->gpio_func = tisan_get_gpio_general_func(gpio_id);
+	key->level = 1;
+	key->k_function1 = peri_key_long_press;
+	key->k_function2 = peri_key_short_press;
+
+	PRINTF("\r\nkey->gpio_id:%d\r\n", key->gpio_id);
+	key_single_init(key);	
+	
+}
+
+
+
+
+
