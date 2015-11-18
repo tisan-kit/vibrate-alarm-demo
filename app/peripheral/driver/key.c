@@ -23,36 +23,6 @@
 
 
 /******************************************************************************
- * FunctionName : key_init
- * Description  : init keys
- * Parameters   : key_param *keys - keys parameter, which inited by key_init_single
- * Returns      : none
-*******************************************************************************/
-void ICACHE_FLASH_ATTR
-key_init(uint32 gpio_name,uint8 gpio_id,uint8 gpio_func)
-{
-	PIN_FUNC_SELECT(gpio_name,gpio_func);
-	PIN_PULLUP_EN(gpio_name);
-	gpio_output_set(0, 0, 0, GPIO_ID_PIN(gpio_id));
-
-	gpio_register_set(GPIO_PIN_ADDR(gpio_id), GPIO_PIN_INT_TYPE_SET(GPIO_PIN_INTR_DISABLE)
-					  | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_DISABLE)
-					  | GPIO_PIN_SOURCE_SET(GPIO_AS_PIN_SOURCE));
-
-	//clear interrupt status
-	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, BIT(gpio_id));
-
-	//set interrupt mode
-	gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_NEGEDGE);
-}
-
-void ICACHE_FLASH_ATTR
-key_init2(uint8_id)
-{
-}
-
-
-/******************************************************************************
  * FunctionName : key_5s_cb
  * Description  : long press 5s timer callback
  * Parameters   : single_key_param *single_key - single key parameter

@@ -15,12 +15,6 @@
 #include "tisan_gpio_intr.h"
 
 
-void gpio_intr_init(void)
-{
-	
-}
-
-
 //void gpio_intr_handler(void *arg)
 void gpio_intr_handler(struct base_key_param **keys_param)
 {
@@ -80,36 +74,20 @@ void gpio_intr_handler(struct base_key_param **keys_param)
 
 			if(i == 1)  //example: manage vibrate event, need call vibrate_init() second
 			{
-				//if(single_key->level == 1)  //get gpio pin level  (high/low)
+				//single_key->counter++;
+				PRINTF("\r\n vibrate high level:%d, counter:%d ....\r\n", single_key->level, single_key->counter);
+				single_key->level = 0;
+				single_key->counter++;
+				if(single_key->counter == 1)
 				{
-					//single_key->counter++;
-					PRINTF("\r\n vibrate high level:%d, counter:%d ....\r\n", single_key->level, single_key->counter);
-					single_key->level = 0;
-					single_key->counter++;
-					if(single_key->counter == 1)
-					{
-						//first call function
-						os_timer_disarm(&single_key->k_timer1);
-						os_timer_setfn(&single_key->k_timer1, (os_timer_func_t *)vibrate_cb,
-								single_key);
-						os_timer_arm(&single_key->k_timer1, 10, 0);
-					}
-					gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_NEGEDGE);
+					//first call function
+					os_timer_disarm(&single_key->k_timer1);
+					os_timer_setfn(&single_key->k_timer1, (os_timer_func_t *)vibrate_cb,
+							single_key);
+					os_timer_arm(&single_key->k_timer1, 10, 0);
 				}
-//				else
-//				{
-//					single_key->counter++;
-//					PRINTF("\r\n vibrate low level:%d, counter:%d ....\r\n", single_key->level, single_key->counter);
-//
-//					single_key->level = 1;
-////					os_timer_disarm(&sinle_key->k_timer2);
-////					os_timer_setfn(&sinle_key->k_timer2, (os_timer_func_t *)vibrate_low_cb,
-////						sinle_key);
-////					os_timer_arm(&sinle_key->k_timer2, 50, 0);
-//					gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_POSEDGE);
-//				}
-
-
+				gpio_pin_intr_state_set(GPIO_ID_PIN(gpio_id), GPIO_PIN_INTR_NEGEDGE);
+			
 				continue;
 			}
 
@@ -118,23 +96,6 @@ void gpio_intr_handler(struct base_key_param **keys_param)
 		}
 	}	
 
-	
-//    if (gpio_status & BIT(VIBRATE_GPIO_ID))  //judge whether interrupt source is gpio12
-//    {
-//    	//clear interrupt status
-//    	GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(VIBRATE_GPIO_ID));
-//
-//		if(GPIO_INPUT_GET(GPIO_ID_PIN(VIBRATE_GPIO_ID)))  //get gpio pin level  (high/low)
-//		{
-//			g_vibrate_high_counter++;
-//			PRINTF("intr vibrate_high_counter:%d\n", g_vibrate_high_counter);
-//		}
-//		else
-//		{
-//			g_vibrate_low_counter++;
-//			PRINTF("intr vibrate_low_counter:%d\n", g_vibrate_low_counter);
-//		}
-//    }
 }
 
 

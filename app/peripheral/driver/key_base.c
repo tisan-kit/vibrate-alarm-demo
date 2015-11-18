@@ -21,8 +21,6 @@ static uint8 key_offset = 0;
 void ICACHE_FLASH_ATTR 
 key_single_init(struct base_key_param * single_key_param)
 {
-//	static uint8 offset = 0;
-
 	if(key_offset >= KEY_MAX_NUM)
 		return;
 	
@@ -70,10 +68,6 @@ base_keys_init(void)
 			gpio_pin_intr_state_set(GPIO_ID_PIN(skey->gpio_id), 
 				GPIO_PIN_INTR_NEGEDGE);
 		}
-		
-
-
-
 	}
 
 	ETS_GPIO_INTR_ENABLE();

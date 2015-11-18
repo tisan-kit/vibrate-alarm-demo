@@ -14,47 +14,18 @@
 #include "driver/tisan_vibrate.h"
 #include "driver/key_base.h"
 
-static uint32 vibrate_counter = 0;
-static uint32 vibrate_low_counter = 0;
-
-
-void ICACHE_FLASH_ATTR
-peri_vibrate_counter_set(uint32 value_add)
-{
-	vibrate_counter += value_add;
-	  PRINTF("\r\n set vibrate_counter \n");
-}
-
-uint32 ICACHE_FLASH_ATTR
-peri_vibrate_counter_get(void)
-{
-	  PRINTF("\r\n get vibrate_counter:%u\n", vibrate_counter);
-	  return vibrate_counter;
-}
-
-
-void ICACHE_FLASH_ATTR
-peri_vibrate_counter_clear(void)
-{
-
-	  PRINTF("\r\n clear vibrate_counter \n");
-}
 
 void ICACHE_FLASH_ATTR
 peri_vibrate_press(void)
 {
-
-	  PRINTF("\r\n peri_vibrate_press \n");
+	PRINTF("\r\n peri_vibrate_press \n");
 }
 
 void ICACHE_FLASH_ATTR 
 peri_vibrate_alarm(void)
 {
-	vibrate_counter = 0;
-
-	PRINTF("\r\n peri_vibrate_alarm accur \r\n");
+	PRINTF("\r\n peri_vibrate_alarm occur \r\n");
 }
-
 
 
 void ICACHE_FLASH_ATTR
@@ -76,8 +47,4 @@ peri_vibrate_init(uint8 gpio_id)
 	alarm_init(13);
 }
 
-void ICACHE_FLASH_ATTR
-peri_vibrate_init_NULL(void)
-{
-	peri_vibrate_init(VIBRATE_GPIO_ID);
-}
+
